@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voxa AI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; background:#0a0e1a; color:#fff; height:100vh; display:flex; }
+
+    /* ── Auth Screen ── */
+#auth-screen {
+  width:100%; height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; position:relative;
+}
+.auth-box {
+  background:#131a2e; border:1px solid #22304d; border-radius:16px;
+  padding:40px; width:400px;
+}
+.auth-credit {
+  position:absolute; bottom:44px; left:0; right:0;
+  text-align:center; color:#9f9f9f; font-size:16px; letter-spacing:.5px;
+}
+    .auth-box h1 { color:#3b82f6; font-size:24px; margin-bottom:6px; }
+    .auth-box p  { color:#888; font-size:13px; margin-bottom:28px; }
+    .auth-tabs   { display:flex; gap:8px; margin-bottom:24px; }
+    .auth-tab {
+      flex:1; padding:10px; border:1px solid #22304d; background:transparent;
+      color:#888; border-radius:8px; cursor:pointer; font-size:14px; transition:.2s;
+    }
+    .auth-tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+    .auth-form { display:flex; flex-direction:column; gap:14px; }
+    .auth-form input {
+      padding:12px 16px; border-radius:8px; border:1px solid #22304d;
+      background:#0f0f1a; color:#fff; font-size:14px; outline:none;
+    }
+    .auth-form input:focus { border-color:#3b82f6; }
+    .auth-btn {
+      padding:13px; border-radius:8px; border:none;
+      background:linear-gradient(135deg,#3b82f6,#06b6d4);
+      color:#fff; font-size:15px; cursor:pointer; font-weight:600;
+    }
+    .auth-error { color:#f87171; font-size:13px; text-align:center; display:none; }
+
+    /* ── App Screen ── */
+    #app-screen { width:100%; display:none; }
+
+    /* Sidebar */
+    .sidebar {
+      width:260px; background:#131a2e; border-right:1px solid #22304d;
+      display:flex; flex-direction:column; height:100vh; position:fixed;
+    }
+    .sidebar-header { padding:20px; border-bottom:1px solid #22304d; }
+    .sidebar-header h2 { color:#3b82f6; font-size:18px; }
+    .sidebar-header p  { color:#888; font-size:12px; margin-top:2px; }
+    .new-chat-btn {
+      margin:16px; padding:10px; border-radius:8px; border:1px dashed #3b82f6;
+      background:transparent; color:#3b82f6; cursor:pointer; font-size:13px;
+      display:flex; align-items:center; gap:8px; transition:.2s;
+    }
+    .new-chat-btn:hover { background:#3b82f61a; }
+    .sessions-list { flex:1; overflow-y:auto; padding:0 8px; }
+    .session-item {
+      padding:10px 12px; border-radius:8px; cursor:pointer; margin-bottom:4px;
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:13px; color:#ccc; transition:.2s;
+    }
+    .session-item:hover  { background:#22304d; }
+    .session-item.active { background:#3b82f61a; color:#3b82f6; }
+    .session-title { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .del-btn {
+      background:none; border:none; color:#666; cursor:pointer;
+      font-size:16px; padding:2px 6px; border-radius:4px; opacity:0;
+    }
+    .session-item:hover .del-btn { opacity:1; }
+    .del-btn:hover { color:#f87171; background:#f871711a; }
+
+    /* Sidebar footer + Help/About links */
+    .sidebar-footer { padding:16px; border-top:1px solid #22304d; }
+    .footer-links {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .footer-link {
+      flex: 1;
+      background: transparent;
+      border: 1px solid #22304d;
+      color: #ccc;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: .2s;
+    }
+    .footer-link:hover {
+      border-color: #3b82f6;
+      color: #3b82f6;
+    }
+    .user-info { display:flex; align-items:center; gap:10px; }
+    .avatar {
+      width:34px; height:34px; border-radius:50%;
+      background:linear-gradient(135deg,#3b82f6,#06b6d4);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:700;
+    }
+    .username { font-size:13px; color:#ccc; }
+    .logout-btn {
+      margin-left:auto; background:none; border:none; color:#666;
+      cursor:pointer; font-size:12px; padding:4px 8px; border-radius:4px;
+    }
+    .logout-btn:hover { color:#f87171; }
+
+    /* Modals */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: #131a2e;
+      border: 1px solid #22304d;
+      border-radius: 16px;
+      width: 420px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid #22304d;
+    }
+    .modal-header h3 { color: #3b82f6; font-size: 18px; }
+    .modal-close {
+      background: none; border: none; color: #888;
+      font-size: 18px; cursor: pointer;
+    }
+    .modal-close:hover { color: #f87171; }
+    .modal-body {
+      padding: 20px 24px;
+      font-size: 14px;
+      color: #ccc;
+      line-height: 1.7;
+    }
+    .modal-body ul { margin: 8px 0 16px 20px; }
+    .modal-body li { margin-bottom: 6px; }
+
+    /* Main chat area */
+    .main { margin-left:260px; flex:1; display:flex; flex-direction:column; height:100vh; }
+    .chat-header {
+      padding:16px 24px; border-bottom:1px solid #22304d;
+      background:#131a2e; font-size:15px; color:#ccc;
+    }
+    .chat-messages {
+      flex:1; overflow-y:auto; padding:24px; display:flex;
+      flex-direction:column; gap:16px;
+    }
+
+    /* Welcome screen */
+    .welcome {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:16px; text-align:center;
+    }
+    .welcome-icon {
+      width:64px; height:64px; border-radius:16px;
+      background:linear-gradient(135deg,#3b82f6,#06b6d4);
+      display:flex; align-items:center; justify-content:center; font-size:28px;
+    }
+    .welcome h2 { font-size:22px; color:#fff; }
+    .welcome p  { color:#888; font-size:14px; }
+    .suggestion-chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:8px; }
+    .chip {
+      padding:8px 16px; border-radius:20px; border:1px solid #22304d;
+      background:transparent; color:#ccc; cursor:pointer; font-size:13px; transition:.2s;
+    }
+    .chip:hover { border-color:#3b82f6; color:#3b82f6; }
+
+    /* Messages */
+    .message { display:flex; gap:10px; max-width:80%; }
+    .message.user  { align-self:flex-end; flex-direction:row-reverse; }
+    .message.bot   { align-self:flex-start; }
+    .msg-avatar {
+      width:32px; height:32px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:14px;
+    }
+    .message.user .msg-avatar {
+      background:linear-gradient(135deg,#3b82f6,#06b6d4);
+    }
+    .message.bot .msg-avatar { background:#22304d; }
+    .msg-bubble {
+      padding:12px 16px; border-radius:12px; font-size:14px;
+      line-height:1.6; max-width:100%;
+    }
+    .message.user .msg-bubble { background:#3b82f6; border-radius:12px 4px 12px 12px; }
+    .message.bot  .msg-bubble { background:#16213a; border:1px solid #22304d; border-radius:4px 12px 12px 12px; }
+    .typing { color:#888; font-style:italic; }
+
+    /* Input */
+    .input-area {
+      padding:16px 24px; border-top:1px solid #22304d; background:#131a2e;
+      display:flex; gap:10px; align-items:flex-end;
+    }
+    .input-area textarea {
+      flex:1; padding:12px 16px; border-radius:12px; border:1px solid #22304d;
+      background:#0f0f1a; color:#fff; font-size:14px; outline:none;
+      resize:none; max-height:120px; line-height:1.5;
+      font-family:Arial,sans-serif;
+    }
+    .input-area textarea:focus { border-color:#3b82f6; }
+    .send-btn {
+      width:44px; height:44px; border-radius:12px; border:none;
+      background:linear-gradient(135deg,#3b82f6,#06b6d4);
+      color:#fff; font-size:20px; cursor:pointer; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .send-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .no-session { color:#888; font-size:13px; text-align:center; padding:20px; }
+  </style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <h1>✦ Voxa AI</h1>
+    <p>Your intelligent assistant — sign in to continue</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showTab('login')">Login</button>
+      <button class="auth-tab" onclick="showTab('register')">Register</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="login-form" class="auth-form">
+      <input type="email" id="login-email" placeholder="Email"/>
+      <input type="password" id="login-pass" placeholder="Password"/>
+      <div class="auth-error" id="login-error"></div>
+      <button class="auth-btn" onclick="login()">Sign In</button>
+    </div>
+
+    <!-- Register form -->
+    <div id="register-form" class="auth-form" style="display:none">
+      <input type="text" id="reg-name" placeholder="Username"/>
+      <input type="email" id="reg-email" placeholder="Email"/>
+      <input type="password" id="reg-pass" placeholder="Password"/>
+      <div class="auth-error" id="reg-error"></div>
+      <button class="auth-btn" onclick="register()">Create Account</button>
+    </div>
+  </div>
+  <p class="auth-credit">Created by Chandan Singh</p>
+</div>
+
+<!-- ── APP SCREEN ── -->
+<div id="app-screen">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>✦ Voxa AI</h2>
+      <p>Your Intelligent AI Companion</p>
+    </div>
+    <button class="new-chat-btn" onclick="newChat()">＋ New Chat</button>
+    <div class="sessions-list" id="sessions-list"></div>
+
+    <div class="sidebar-footer">
+      <div class="footer-links">
+        <button class="footer-link" onclick="openModal('help-modal')">❓ Help</button>
+        <button class="footer-link" onclick="openModal('about-modal')">ℹ️ About Me</button>
+      </div>
+      <div class="user-info">
+        <div class="avatar" id="user-avatar">?</div>
+        <span class="username" id="user-name">User</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="chat-header" id="chat-header">Select or start a new coversation</div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="welcome" id="welcome-screen">
+        <div class="welcome-icon">✦</div>
+        <h2>Welcome to Voxa AI</h2>
+        <p>Ask me anything — start a new chat to begin</p>
+        <div class="suggestion-chips">
+          <button class="chip" onclick="useChip(this)">Ask me anything</button>
+          <button class="chip" onclick="useChip(this)">Research any topic</button>
+          <button class="chip" onclick="useChip(this)">Explain this algorithm</button>
+          <button class="chip" onclick="useChip(this)">Brainstorm ideas</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-area">
+      <textarea id="user-input" placeholder="Ask Voxa anything..." rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Help Modal ── -->
+<div class="modal-overlay" id="help-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>❓ Help</h3>
+      <button class="modal-close" onclick="closeModal('help-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>How to use Voxa AI:</strong></p>
+      <ul>
+        <li>Click <strong>+ New Chat</strong> to start a fresh conversation</li>
+        <li>Your chats are saved automatically and shown in the sidebar</li>
+        <li>Ask anything</li>
+        <li>Click any past chat to continue where you left off</li>
+        <li>Click ✕ on a chat to delete it permanently</li>
+      </ul>
+      <p><strong>Tips:</strong></p>
+      <ul>
+        <li>Try: "Explain this algorithm"</li>
+        <li>Try: "Who made you?"</li>
+        <li>Try: "Brainstorm ideas"</li>
+      </ul>
+       <p style="margin-top:16px;"><strong>Found a bug or issue?</strong></p>
+  <p style="margin-bottom:12px;">Reach out — I'd love to hear from you!</p>
+  <div class="social-links">
+    <a href="mailto:chandansinghatwokr22@gmail.com" target="_blank">📧 Email </a>
+    <a href="https://github.com/chandann22" target="_blank">💻 GitHub </a>
+    <a href="https://www.linkedin.com/in/chandan-singh-23869b310/" target="_blank">🔗 LinkedIn </a>
+  </div>
+</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── About Modal ── -->
+<div class="modal-overlay" id="about-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>ℹ️ About Voxa AI</h3>
+      <button class="modal-close" onclick="closeModal('about-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>Voxa AI</strong> is an intelligent assistant built by <strong>Chandan Singh</strong>.</p>
+      <p>It is powered by:</p>
+      <ul>
+        <li><strong>LangGraph</strong> — agent orchestration & tool calling</li>
+        <li><strong>OpenRouter</strong> — access to free LLMs</li>
+        <li><strong>RAG (ChromaDB)</strong> — answers from a custom knowledge base</li>
+        <li><strong>FastAPI</strong> — backend server</li>
+        <li><strong>JWT Auth</strong> — secure login & saved chat history</li>
+      </ul>
+      <p style="margin-top:16px; color:#888; font-size:12px;">Built with ❤️ using Agentic AI concepts.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+let token = localStorage.getItem("token");
+let currentSession = null;
+let username = localStorage.getItem("username") || "";
+
+// ── Init ──────────────────────────────────────────────────
+window.onload = () => {
+  if (token) showApp();
+};
+
+// ── Auth tabs ─────────────────────────────────────────────
+function showTab(tab) {
+  document.getElementById("login-form").style.display    = tab==="login"    ? "flex" : "none";
+  document.getElementById("register-form").style.display = tab==="register" ? "flex" : "none";
+  document.querySelectorAll(".auth-tab").forEach((b,i) =>
+    b.classList.toggle("active", (i===0&&tab==="login")||(i===1&&tab==="register")));
+}
+
+// ── Register ──────────────────────────────────────────────
+async function register() {
+  const name  = document.getElementById("reg-name").value.trim();
+  const email = document.getElementById("reg-email").value.trim();
+  const pass  = document.getElementById("reg-pass").value;
+  const err   = document.getElementById("reg-error");
+  if (!name||!email||!pass) { showError(err,"Fill all fields"); return; }
+  try {
+    const res  = await fetch(`${API}/register`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({username:name, email, password:pass})
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(err, data.detail||"Error"); return; }
+    saveAuth(data.token, data.username);
+    showApp();
+  } catch(e) { showError(err,"Cannot connect to server"); }
+}
+
+// ── Login ─────────────────────────────────────────────────
+async function login() {
+  const email = document.getElementById("login-email").value.trim();
+  const pass  = document.getElementById("login-pass").value;
+  const err   = document.getElementById("login-error");
+  if (!email||!pass) { showError(err,"Fill all fields"); return; }
+  try {
+    const res  = await fetch(`${API}/login`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({email, password:pass})
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(err, data.detail||"Invalid credentials"); return; }
+    saveAuth(data.token, data.username);
+    showApp();
+  } catch(e) { showError(err,"Cannot connect to server"); }
+}
+
+function saveAuth(t, u) {
+  token = t; username = u;
+  localStorage.setItem("token", t);
+  localStorage.setItem("username", u);
+}
+
+function logout() {
+  localStorage.clear();
+  token = null; currentSession = null;
+  document.getElementById("app-screen").style.display  = "none";
+  document.getElementById("auth-screen").style.display = "flex";
+}
+
+function showError(el, msg) {
+  el.textContent = msg; el.style.display = "block";
+  setTimeout(() => el.style.display = "none", 3000);
+}
+
+// ── Show App ──────────────────────────────────────────────
+function showApp() {
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("app-screen").style.display  = "flex";
+  document.getElementById("user-name").textContent     = username;
+  document.getElementById("user-avatar").textContent   = username[0]?.toUpperCase()||"U";
+  loadSessions();
+}
+
+// ── Modals ────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add("active");
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove("active");
+}
+
+// ── Sessions ──────────────────────────────────────────────
+async function loadSessions() {
+  try {
+    const res  = await fetch(`${API}/sessions`, { headers: authHeaders() });
+    const data = await res.json();
+    renderSessions(data);
+  } catch(e) {}
+}
+
+function renderSessions(sessions) {
+  const list = document.getElementById("sessions-list");
+  list.innerHTML = sessions.length ? "" : '<p style="color:#555;font-size:12px;padding:12px">No chats yet</p>';
+  sessions.forEach(s => {
+    const div = document.createElement("div");
+    div.className = "session-item" + (s.id===currentSession?" active":"");
+    div.innerHTML = `<span class="session-title">${s.title||"New Chat"}</span>
+      <button class="del-btn" onclick="deleteSession('${s.id}',event)">✕</button>`;
+    div.onclick = () => loadSession(s.id, s.title);
+    list.appendChild(div);
+  });
+}
+
+async function newChat() {
+  try {
+    const res  = await fetch(`${API}/sessions`, { method:"POST", headers: authHeaders() });
+    const data = await res.json();
+    currentSession = data.session_id;
+    document.getElementById("chat-header").textContent = "New Chat";
+    document.getElementById("chat-messages").innerHTML = "";
+    loadSessions();
+  } catch(e) {}
+}
+
+async function loadSession(id, title) {
+  currentSession = id;
+  document.getElementById("chat-header").textContent = title||"Chat";
+  const msgs = document.getElementById("chat-messages");
+  msgs.innerHTML = "";
+  try {
+    const res  = await fetch(`${API}/sessions/${id}/messages`, { headers: authHeaders() });
+    const data = await res.json();
+    data.forEach(m => appendMessage(m.role==="user"?"user":"bot", m.content));
+    document.querySelectorAll(".session-item").forEach(el => {
+      el.classList.toggle("active", el.querySelector(".session-title")?.textContent === (title||"New Chat"));
+    });
+  } catch(e) {}
+}
+
+async function deleteSession(id, e) {
+  e.stopPropagation();
+  await fetch(`${API}/sessions/${id}`, { method:"DELETE", headers: authHeaders() });
+  if (currentSession === id) {
+    currentSession = null;
+    document.getElementById("chat-messages").innerHTML = "";
+    document.getElementById("chat-header").textContent = "Select or start a new chat";
+  }
+  loadSessions();
+}
+
+// ── Chat ──────────────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById("user-input");
+  const text  = input.value.trim();
+  if (!text) return;
+  if (!currentSession) { await newChat(); }
+
+  input.value = ""; autoResize(input);
+  appendMessage("user", text);
+  document.getElementById("welcome-screen")?.remove();
+
+  const typingId = "typing-" + Date.now();
+  appendTyping(typingId);
+  document.getElementById("send-btn").disabled = true;
+
+  try {
+    const res  = await fetch(`${API}/chat`, {
+      method:"POST", headers:{ ...authHeaders(), "Content-Type":"application/json" },
+      body: JSON.stringify({ message:text, session_id:currentSession })
+    });
+    const data = await res.json();
+    document.getElementById(typingId)?.remove();
+    appendMessage("bot", data.reply||"Sorry, something went wrong.");
+    loadSessions();
+  } catch(e) {
+    document.getElementById(typingId)?.remove();
+    appendMessage("bot","❌ Cannot connect to server.");
+  }
+  document.getElementById("send-btn").disabled = false;
+}
+
+function appendMessage(role, text) {
+  const msgs = document.getElementById("chat-messages");
+  const div  = document.createElement("div");
+  div.className = `message ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role==="user" ? username[0]?.toUpperCase()||"U" : "✦"}</div>
+    <div class="msg-bubble">${text.replace(/\n/g,"<br>")}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendTyping(id) {
+  const msgs = document.getElementById("chat-messages");
+  const div  = document.createElement("div");
+  div.className = "message bot"; div.id = id;
+  div.innerHTML = `<div class="msg-avatar">✦</div>
+    <div class="msg-bubble typing">Voxa is thinking...</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function useChip(btn) {
+  document.getElementById("user-input").value = btn.textContent;
+  sendMessage();
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function authHeaders() { return { Authorization: `Bearer ${token}` }; }
+function handleKey(e)  { if (e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } }
+function autoResize(el){ el.style.height="auto"; el.style.height=el.scrollHeight+"px"; }
+</script>
+</body>
+</html>
