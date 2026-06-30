@@ -2,6 +2,9 @@
 
 An intelligent AI chatbot built with LangGraph, FastAPI, RAG, and OpenRouter.
 
+## 🚀 Live Demo
+Try it now: https://chandann22-voxa-ai.hf.space
+
 ## Features
 - 🔐 User authentication (JWT)
 - 💬 Persistent chat history
