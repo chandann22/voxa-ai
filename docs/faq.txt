@@ -1,0 +1,8 @@
+Q: What can Voxa AI do?
+A: It can answer general questions, help with coding, explain concepts, do math, and search the web.
+
+Q: Who made this chatbot?
+A: This chatbot was made by Chandan Singh.
+
+Q: How does this chatbot work?
+A: It uses LangGraph for agent orchestration, OpenRouter for LLM access, and ChromaDB for document search.

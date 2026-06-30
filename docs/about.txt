@@ -1,0 +1,5 @@
+Voxa AI chatbot is a general purpose assistant.
+It can answer questions on any topic.
+It is built using LangGraph, FastAPI, and OpenRouter.
+It supports user authentication and saves chat history.
+It uses RAG to answer from its own knowledge base.
