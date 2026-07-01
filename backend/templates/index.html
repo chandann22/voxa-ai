@@ -9,18 +9,18 @@
     body { font-family: Arial, sans-serif; background:#0a0e1a; color:#fff; height:100vh; display:flex; }
 
     /* ── Auth Screen ── */
-#auth-screen {
-  width:100%; height:100vh; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; position:relative;
-}
-.auth-box {
-  background:#131a2e; border:1px solid #22304d; border-radius:16px;
-  padding:40px; width:400px;
-}
-.auth-credit {
-  position:absolute; bottom:44px; left:0; right:0;
-  text-align:center; color:#9f9f9f; font-size:16px; letter-spacing:.5px;
-}
+    #auth-screen {
+      width:100%; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:16px;
+    }
+    .auth-box {
+      background:#131a2e; border:1px solid #22304d; border-radius:16px;
+      padding:40px; width:380px;
+    }
+    .auth-credit {
+       position:absolute; bottom:40px; left:0; right:0;
+       text-align:center; color:#c7c7c7; font-size:14px; letter-spacing:.4px;
+    }
     .auth-box h1 { color:#3b82f6; font-size:24px; margin-bottom:6px; }
     .auth-box p  { color:#888; font-size:13px; margin-bottom:28px; }
     .auth-tabs   { display:flex; gap:8px; margin-bottom:24px; }
@@ -49,9 +49,13 @@
     .sidebar {
       width:260px; background:#131a2e; border-right:1px solid #22304d;
       display:flex; flex-direction:column; height:100vh; position:fixed;
+      z-index: 200; transition: transform .25s ease, width .25s ease;
+      transform: translateX(0); overflow:hidden;
     }
-    .sidebar-header { padding:20px; border-bottom:1px solid #22304d; }
-    .sidebar-header h2 { color:#3b82f6; font-size:18px; }
+    .sidebar.collapsed { width:0; border-right:none; }
+    .sidebar.collapsed * { opacity:0; pointer-events:none; }
+    .sidebar-header { padding:0 20px; border-bottom:1px solid #22304d; height:73px; display:flex; align-items:center; justify-content:space-between; }
+    .sidebar-header h2 { color:#3b82f6; font-size:18px; line-height:1.3; }
     .sidebar-header p  { color:#888; font-size:12px; margin-top:2px; }
     .new-chat-btn {
       margin:16px; padding:10px; border-radius:8px; border:1px dashed #3b82f6;
@@ -153,10 +157,71 @@
     .modal-body li { margin-bottom: 6px; }
 
     /* Main chat area */
-    .main { margin-left:260px; flex:1; display:flex; flex-direction:column; height:100vh; }
+    .main { margin-left:260px; flex:1; display:flex; flex-direction:column; height:100vh; transition: margin-left .25s ease; }
+    .main.sidebar-collapsed { margin-left:0; }
     .chat-header {
-      padding:16px 24px; border-bottom:1px solid #22304d;
+      padding:0 24px; height:73px; border-bottom:1px solid #22304d;
       background:#131a2e; font-size:15px; color:#ccc;
+      display:flex; align-items:center; gap:12px;
+    }
+    .hamburger-btn {
+      display:flex; background:transparent; border:1px solid #22304d;
+      color:#ccc; width:36px; height:36px; border-radius:8px;
+      cursor:pointer; font-size:18px; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .hamburger-btn:hover { border-color:#3b82f6; color:#3b82f6; }
+    .sidebar-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+      z-index:150;
+    }
+    .sidebar-close-btn {
+      display:block; background:transparent; border:none; color:#888;
+      font-size:20px; cursor:pointer; padding:4px 8px;
+    }
+    
+    .input-area {
+  padding:16px 24px; border-top:1px solid #22304d; background:#131a2e;
+  display:flex; gap:10px; align-items:flex-end;
+}
+
+.mode-selector { position:relative; flex-shrink:0; }
+.mode-btn {
+  display:flex; align-items:center; gap:6px; height:44px;
+  background:transparent; border:1px solid #22304d; border-radius:12px;
+  padding:0 12px; color:#ccc; font-size:13px; cursor:pointer; transition:.2s;
+}
+.mode-btn:hover { border-color:#3b82f6; }
+.mode-arrow { font-size:10px; color:#888; margin-left:2px; }
+
+.mode-dropdown {
+  display:none; position:absolute; bottom:calc(100% + 8px); left:0;
+  background:#131a2e; border:1px solid #22304d; border-radius:12px;
+  width:260px; padding:6px; z-index:50;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.mode-dropdown.open { display:block; }
+.mode-option {
+  display:flex; align-items:center; gap:10px; padding:10px;
+  border-radius:8px; cursor:pointer; transition:.15s;
+}
+.mode-option:hover { background:#1a2540; }
+.mode-option.active { background:#3b82f61a; }
+.mode-option-icon { font-size:18px; flex-shrink:0; }
+.mode-option-title { font-size:13px; color:#fff; font-weight:600; }
+.mode-option-desc { font-size:11px; color:#888; margin-top:1px; }
+
+.input-area {
+  padding:12px 24px 16px; display:flex; gap:10px; align-items:flex-end;
+}
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); width:280px; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar.collapsed { width:280px; } /* on mobile, "collapsed" just means hidden via transform */
+      .sidebar.collapsed.open { transform: translateX(0); }
+      .main { margin-left:0; }
+      .sidebar-overlay.active { display:block; }
     }
     .chat-messages {
       flex:1; overflow-y:auto; padding:24px; display:flex;
@@ -194,19 +259,150 @@
       background:linear-gradient(135deg,#3b82f6,#06b6d4);
     }
     .message.bot .msg-avatar { background:#22304d; }
-    .msg-bubble {
-      padding:12px 16px; border-radius:12px; font-size:14px;
-      line-height:1.6; max-width:100%;
-    }
+    /* ================= Chat Bubble ================= */
+
+.msg-bubble{
+    padding:16px 18px;
+    border-radius:12px;
+
+    font-size:14px;
+    font-weight:400;
+    line-height:1.7;
+
+    color:#E5E7EB;
+    word-wrap:break-word;
+}
+
+/* Paragraphs */
+
+.msg-bubble p{
+    margin:10px 0;
+    font-size:14px;
+    font-weight:400;
+}
+
+/* Headings */
+
+.msg-bubble h1{
+    font-size:22px;
+    font-weight:600;
+    margin:16px 0 10px;
+}
+
+.msg-bubble h2{
+    font-size:18px;
+    font-weight:600;
+    margin:14px 0 8px;
+}
+
+.msg-bubble h3{
+    font-size:16px;
+    font-weight:600;
+    margin:12px 0 6px;
+}
+
+/* Lists */
+
+.msg-bubble ul,
+.msg-bubble ol{
+    padding-left:22px;
+    margin:10px 0;
+}
+
+.msg-bubble li{
+    margin:5px 0;
+    font-size:14px;
+    font-weight:400;
+}
+
+/* Bold */
+
+.msg-bubble strong{
+    font-weight:500;
+}
+
+/* Italics */
+
+.msg-bubble em{
+    font-style:italic;
+}
+
+/* Inline code */
+
+.msg-bubble code{
+    font-size:13px;
+    font-family:Consolas, monospace;
+    background:#111827;
+    padding:2px 5px;
+    border-radius:4px;
+}
+
+/* Code block */
+
+.msg-bubble pre{
+    background:#0d1117;
+    padding:14px;
+    border-radius:8px;
+    overflow-x:auto;
+    margin:12px 0;
+}
+
+/* Tables */
+
+.msg-bubble table{
+    width:100%;
+    border-collapse:collapse;
+    margin:14px 0;
+    font-size:13px;
+}
+
+.msg-bubble th{
+    background:#1f2937;
+    font-weight:600;
+}
+
+.msg-bubble th,
+.msg-bubble td{
+    padding:8px;
+    border:1px solid #374151;
+}
+
+/* Blockquote */
+
+.msg-bubble blockquote{
+    border-left:3px solid #3b82f6;
+    padding-left:12px;
+    color:#9CA3AF;
+    margin:12px 0;
+}
     .message.user .msg-bubble { background:#3b82f6; border-radius:12px 4px 12px 12px; }
     .message.bot  .msg-bubble { background:#16213a; border:1px solid #22304d; border-radius:4px 12px 12px 12px; }
+
+    /* ── Markdown rendering inside bot bubbles ── */
+    .msg-bubble h1,.msg-bubble h2,.msg-bubble h3 {
+      color:#93c5fd; font-size:15px; margin:12px 0 6px; border-bottom:1px solid #22304d; padding-bottom:4px;
+    }
+    .msg-bubble p { margin:6px 0; line-height:1.7; }
+    .msg-bubble ul,.msg-bubble ol { margin:6px 0 6px 20px; line-height:1.8; }
+    .msg-bubble li { margin-bottom:3px; }
+    .msg-bubble strong { color:#93c5fd; }
+    .msg-bubble code {
+      background:#0a0e1a; border:1px solid #22304d; border-radius:4px;
+      padding:1px 6px; font-size:12px; font-family:monospace; color:#7dd3fc;
+    }
+    .msg-bubble pre {
+      background:#0a0e1a; border:1px solid #22304d; border-radius:8px;
+      padding:12px; overflow-x:auto; margin:8px 0;
+    }
+    .msg-bubble pre code { background:none; border:none; padding:0; color:#e2e8f0; }
+    .msg-bubble blockquote {
+      border-left:3px solid #3b82f6; margin:8px 0; padding:4px 12px; color:#94a3b8;
+    }
+    .msg-bubble hr { border:none; border-top:1px solid #22304d; margin:10px 0; }
+    .msg-bubble a { color:#3b82f6; text-decoration:underline; }
     .typing { color:#888; font-style:italic; }
 
     /* Input */
-    .input-area {
-      padding:16px 24px; border-top:1px solid #22304d; background:#131a2e;
-      display:flex; gap:10px; align-items:flex-end;
-    }
     .input-area textarea {
       flex:1; padding:12px 16px; border-radius:12px; border:1px solid #22304d;
       background:#0f0f1a; color:#fff; font-size:14px; outline:none;
@@ -223,6 +419,16 @@
     .send-btn:disabled { opacity:.5; cursor:not-allowed; }
     .no-session { color:#888; font-size:13px; text-align:center; padding:20px; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    // Configure marked.js for clean output
+    marked.setOptions({
+      breaks: true,       // single newline = <br>
+      gfm: true,          // GitHub Flavored Markdown
+      headerIds: false,   // no id attrs on headings
+      mangle: false,      // don't mangle email addresses
+    });
+  </script>
 </head>
 <body>
 
@@ -260,10 +466,13 @@
 <div id="app-screen">
 
   <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <h2>✦ Voxa AI</h2>
-      <p>Your Intelligent AI Companion</p>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header" style="display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <h2>✦ Voxa AI</h2>
+        <p>Your Intelligent AI Companion</p>
+      </div>
+      <button class="sidebar-close-btn" onclick="toggleSidebar()">✕</button>
     </div>
     <button class="new-chat-btn" onclick="newChat()">＋ New Chat</button>
     <div class="sessions-list" id="sessions-list"></div>
@@ -281,9 +490,14 @@
     </div>
   </div>
 
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
   <!-- Main -->
   <div class="main">
-    <div class="chat-header" id="chat-header">Select or start a new coversation</div>
+    <div class="chat-header" id="chat-header">
+      <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+      <span id="chat-header-text">Select or start a new coversation</span>
+    </div>
     <div class="chat-messages" id="chat-messages">
       <div class="welcome" id="welcome-screen">
         <div class="welcome-icon">✦</div>
@@ -292,16 +506,41 @@
         <div class="suggestion-chips">
           <button class="chip" onclick="useChip(this)">Ask me anything</button>
           <button class="chip" onclick="useChip(this)">Research any topic</button>
-          <button class="chip" onclick="useChip(this)">Explain this algorithm</button>
+          <button class="chip" onclick="useChip(this)">What is DSA?</button>
           <button class="chip" onclick="useChip(this)">Brainstorm ideas</button>
         </div>
       </div>
     </div>
     <div class="input-area">
-      <textarea id="user-input" placeholder="Ask Voxa anything..." rows="1"
-        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-      <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+  <div class="mode-selector">
+    <button class="mode-btn" id="mode-btn" onclick="toggleModeDropdown()">
+      <span id="mode-icon">✦</span>
+      <span id="mode-label">Voxa AI</span>
+      <span class="mode-arrow">▾</span>
+    </button>
+    <div class="mode-dropdown" id="mode-dropdown">
+      <div class="mode-option active" data-mode="normal" onclick="selectMode('normal')">
+        <span class="mode-option-icon">✦</span>
+        <div>
+          <div class="mode-option-title">Voxa AI</div>
+          <div class="mode-option-desc">General Assistant</div>
+        </div>
+      </div>
+      <div class="mode-option" data-mode="rag" onclick="selectMode('rag')">
+        <span class="mode-option-icon">📄</span>
+        <div>
+          <div class="mode-option-title">RAG mode</div>
+          <div class="mode-option-desc">Answers only from your data</div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <textarea id="user-input" placeholder="Ask Voxa anything..." rows="1"
+    onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+  <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+</div>
+</div>
   </div>
 
 </div>
@@ -324,18 +563,17 @@
       </ul>
       <p><strong>Tips:</strong></p>
       <ul>
-        <li>Try: "Explain this algorithm"</li>
+        <li>Try: "What is DSA?"</li>
         <li>Try: "Who made you?"</li>
-        <li>Try: "Brainstorm ideas"</li>
+        <li>Try: "What is AI??"</li>
       </ul>
-       <p style="margin-top:16px;"><strong>Found a bug or issue?</strong></p>
-  <p style="margin-bottom:12px;">Reach out — I'd love to hear from you!</p>
-  <div class="social-links">
-    <a href="mailto:chandansinghatwokr22@gmail.com" target="_blank">📧 Email </a>
-    <a href="https://github.com/chandann22" target="_blank">💻 GitHub </a>
-    <a href="https://www.linkedin.com/in/chandan-singh-23869b310/" target="_blank">🔗 LinkedIn </a>
+      <p style="margin-top:16px;"><strong>Found a bug or issue?</strong></p>
+      <p style="margin-bottom:12px;">Reach out — I'd love to hear from you!</p>
+      <div class="social-links">
+      <a href="mailto:chandansinghatwokr22@gmail.com" target="_blank">📧 Email </a>
+      <a href="https://github.com/chandann22" target="_blank">💻 GitHub </a>
+      <a href="https://www.linkedin.com/in/chandan-singh-23869b310/" target="_blank">🔗 LinkedIn </a>
   </div>
-</div>
     </div>
   </div>
 </div>
@@ -363,7 +601,7 @@
 </div>
 
 <script>
-const API = "http://localhost:8000";
+const API = "";
 let token = localStorage.getItem("token");
 let currentSession = null;
 let username = localStorage.getItem("username") || "";
@@ -453,6 +691,33 @@ function closeModal(id) {
   document.getElementById(id).classList.remove("active");
 }
 
+// ── Sidebar toggle (desktop collapse + mobile slide) ─────
+function isMobile() { return window.innerWidth <= 768; }
+
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const main    = document.querySelector(".main");
+  const overlay = document.getElementById("sidebar-overlay");
+
+  if (isMobile()) {
+    const isOpen = sidebar.classList.toggle("open");
+    overlay.classList.toggle("active", isOpen);
+  } else {
+    const isCollapsed = sidebar.classList.toggle("collapsed");
+    main.classList.toggle("sidebar-collapsed", isCollapsed);
+  }
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (isMobile()) {
+    sidebar.classList.remove("open");
+    overlay.classList.remove("active");
+  }
+  // On desktop, closing a chat selection should NOT auto-collapse the sidebar.
+}
+
 // ── Sessions ──────────────────────────────────────────────
 async function loadSessions() {
   try {
@@ -480,15 +745,16 @@ async function newChat() {
     const res  = await fetch(`${API}/sessions`, { method:"POST", headers: authHeaders() });
     const data = await res.json();
     currentSession = data.session_id;
-    document.getElementById("chat-header").textContent = "New Chat";
+    document.getElementById("chat-header-text").textContent = "New Chat";
     document.getElementById("chat-messages").innerHTML = "";
     loadSessions();
+    closeSidebar();
   } catch(e) {}
 }
 
 async function loadSession(id, title) {
   currentSession = id;
-  document.getElementById("chat-header").textContent = title||"Chat";
+  document.getElementById("chat-header-text").textContent = title||"Chat"; closeSidebar();
   const msgs = document.getElementById("chat-messages");
   msgs.innerHTML = "";
   try {
@@ -507,7 +773,7 @@ async function deleteSession(id, e) {
   if (currentSession === id) {
     currentSession = null;
     document.getElementById("chat-messages").innerHTML = "";
-    document.getElementById("chat-header").textContent = "Select or start a new chat";
+    document.getElementById("chat-header-text").textContent = "Select or start a new chat";
   }
   loadSessions();
 }
@@ -523,23 +789,137 @@ async function sendMessage() {
   appendMessage("user", text);
   document.getElementById("welcome-screen")?.remove();
 
-  const typingId = "typing-" + Date.now();
-  appendTyping(typingId);
   document.getElementById("send-btn").disabled = true;
 
-  try {
-    const res  = await fetch(`${API}/chat`, {
-      method:"POST", headers:{ ...authHeaders(), "Content-Type":"application/json" },
-      body: JSON.stringify({ message:text, session_id:currentSession })
+  // Create an empty bot bubble we'll fill in as tokens arrive
+  const msgs = document.getElementById("chat-messages");
+  const botId = "bot-" + Date.now();
+  const botDiv = document.createElement("div");
+  botDiv.className = "message bot";
+  botDiv.id = botId;
+  const avatarIcon = ragMode ? "📄" : "✦";
+const thinkingText = ragMode ? "Searching knowledge base..." : "Voxa is thinking...";
+botDiv.innerHTML = `<div class="msg-avatar">${avatarIcon}</div><div class="msg-bubble" id="${botId}-text"><span class="typing">${thinkingText}</span></div>`;
+  msgs.appendChild(botDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  const bubble = document.getElementById(`${botId}-text`);
+  let firstChunk = true;
+  let fullText = "";
+
+  // ── Word-group pacing ─────────────────────────────────────────────
+  // Incoming tokens are buffered here. Every FLUSH_EVERY words (or when
+  // the stream ends), we append the next group to the bubble with a
+  // WORD_DELAY_MS pause — giving a calm, readable typewriter feel.
+  const WORDS_PER_FLUSH = 1;   // words per visible "step"
+  const WORD_DELAY_MS   = 55;  // ms between each step (~180 wpm — natural reading pace)
+
+  let wordBuffer   = "";   // raw text waiting to be flushed
+  let wordCount    = 0;
+  let flushPromise = Promise.resolve();
+
+  function scheduleFlush(force = false) {
+    flushPromise = flushPromise.then(async () => {
+      if (!wordBuffer && !force) return;
+      if (!wordBuffer) return;
+      if (firstChunk) { bubble.innerHTML = ""; firstChunk = false; }
+      fullText += wordBuffer;
+      wordBuffer = "";
+      wordCount  = 0;
+      bubble.innerHTML = renderMarkdown(fullText);
+      msgs.scrollTop = msgs.scrollHeight;
+      await new Promise(r => setTimeout(r, WORD_DELAY_MS));
     });
-    const data = await res.json();
-    document.getElementById(typingId)?.remove();
-    appendMessage("bot", data.reply||"Sorry, something went wrong.");
-    loadSessions();
-  } catch(e) {
-    document.getElementById(typingId)?.remove();
-    appendMessage("bot","❌ Cannot connect to server.");
   }
+
+  // Helper: render markdown safely
+  function renderMarkdown(text) {
+    if (typeof marked === "undefined") return text.replace(/\n/g, "<br>");
+    return marked.parse(text);
+  }
+
+  try {
+    const endpoint = ragMode ? "/chat/rag" : "/chat/stream";
+    const url = `${API}${endpoint}`;
+    const headers = { ...authHeaders(), "Content-Type": "application/json" };
+    const body = JSON.stringify({ message: text, session_id: currentSession });
+
+    // Modern Safari (15.4+/iOS 15.4+) supports ReadableStream with getReader().
+    // Only fall back to XHR if ReadableStream or getReader is genuinely missing.
+    const supportsStreaming = (
+      typeof ReadableStream !== "undefined" &&
+      typeof TextDecoder !== "undefined" &&
+      typeof ReadableStream.prototype.getReader === "function"
+    );
+
+    async function processToken(raw) {
+      // Tokens are JSON-encoded on the server to preserve newlines
+      let token;
+      try { token = JSON.parse(raw); } catch { token = raw; }
+
+      // Count words in this token and accumulate
+      const words = token.split(/\s+/).filter(Boolean);
+      wordBuffer += token;
+      wordCount  += words.length;
+
+      if (wordCount >= WORDS_PER_FLUSH) {
+        scheduleFlush();
+      }
+    }
+
+    if (supportsStreaming) {
+      const res = await fetch(url, { method: "POST", headers, body });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6);
+          if (raw === "[DONE]") continue;
+          await processToken(raw);
+        }
+      }
+    } else {
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+        xhr.responseType = "text";
+        let offset = 0;
+        xhr.onprogress = async () => {
+          const newData = xhr.responseText.slice(offset);
+          offset = xhr.responseText.length;
+          const lines = newData.split("\n\n");
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6);
+            if (raw === "[DONE]") continue;
+            await processToken(raw);
+          }
+        };
+        xhr.onload  = () => resolve();
+        xhr.onerror = () => reject(new Error("XHR failed"));
+        xhr.send(body);
+      });
+    }
+
+    // Flush any remaining buffered words then do a final clean render
+    if (wordBuffer) scheduleFlush(true);
+    await flushPromise;
+    if (fullText) bubble.innerHTML = renderMarkdown(fullText);
+    loadSessions();
+  } catch (e) {
+    console.error("Stream error:", e);
+    bubble.innerHTML = "❌ Cannot connect to server.";
+  }
+
   document.getElementById("send-btn").disabled = false;
 }
 
@@ -549,7 +929,7 @@ function appendMessage(role, text) {
   div.className = `message ${role}`;
   div.innerHTML = `
     <div class="msg-avatar">${role==="user" ? username[0]?.toUpperCase()||"U" : "✦"}</div>
-    <div class="msg-bubble">${text.replace(/\n/g,"<br>")}</div>`;
+    <div class="msg-bubble">${marked.parse(text)}</div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
 }
@@ -568,6 +948,44 @@ function useChip(btn) {
   document.getElementById("user-input").value = btn.textContent;
   sendMessage();
 }
+
+let ragMode = false;
+
+function toggleModeDropdown() {
+  document.getElementById("mode-dropdown").classList.toggle("open");
+}
+
+function selectMode(mode) {
+  ragMode = (mode === "rag");
+
+  document.querySelectorAll(".mode-option").forEach(el => {
+    el.classList.toggle("active", el.dataset.mode === mode);
+  });
+
+  const icon  = document.getElementById("mode-icon");
+  const label = document.getElementById("mode-label");
+  const input = document.getElementById("user-input");
+
+  if (ragMode) {
+    icon.textContent  = "📄";
+    label.textContent = "RAG mode";
+    input.placeholder = "Ask about your documents...";
+  } else {
+    icon.textContent  = "✦";
+    label.textContent = "Voxa AI";
+    input.placeholder = "Ask Voxa anything...";
+  }
+
+  document.getElementById("mode-dropdown").classList.remove("open");
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (e) => {
+  const selector = document.querySelector(".mode-selector");
+  if (selector && !selector.contains(e.target)) {
+    document.getElementById("mode-dropdown").classList.remove("open");
+  }
+});
 
 // ── Helpers ───────────────────────────────────────────────
 function authHeaders() { return { Authorization: `Bearer ${token}` }; }
