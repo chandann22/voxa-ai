@@ -11,7 +11,7 @@ import json, uuid
 
 from database import get_db, init_db, User, ChatSession, Message
 from auth import hash_password, verify_password, create_token, get_current_user
-from agent import agent
+from agent import agent, get_rag_response, stream_chat, stream_rag_response
 from guardrails import check_input, clean_output
 from rag import build_vectorstore
 
@@ -94,12 +94,11 @@ def get_messages(session_id: str, user=Depends(get_current_user), db: Session = 
     ).order_by(Message.timestamp).all()
     return [{"role": m.role, "content": m.content} for m in msgs]
 
-# ── Chat route ────────────────────────────────────────────
+# ── Chat route (non-streaming, plain JSON) ─────────────────
 class ChatBody(BaseModel):
     message: str
     session_id: str
 
-@app.post("/chat")
 @app.post("/chat")
 def chat(body: ChatBody, user=Depends(get_current_user), db: Session = Depends(get_db)):
     safe, reason = check_input(body.message)
@@ -134,3 +133,115 @@ def chat(body: ChatBody, user=Depends(get_current_user), db: Session = Depends(g
     db.commit()
 
     return {"reply": reply}
+
+# ── Chat route (SSE-style chunked output for the frontend) ─
+def chunk_text(text: str, chunk_size: int = 4):
+    for i in range(0, len(text), chunk_size):
+        yield text[i:i + chunk_size]
+
+@app.post("/chat/stream")
+def chat_stream(body: ChatBody, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    safe, reason = check_input(body.message)
+    if not safe:
+        def error_gen():
+            yield f"data: {reason}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(error_gen(), media_type="text/event-stream")
+
+    past = db.query(Message).filter(
+        Message.session_id == body.session_id
+    ).order_by(Message.timestamp).all()
+
+    history = [
+        HumanMessage(content=m.content) if m.role == "user"
+        else AIMessage(content=m.content)
+        for m in past
+    ]
+    history.append(HumanMessage(content=body.message))
+
+    def event_generator():
+        full_reply = ""
+        try:
+            for token in stream_chat(history):
+                full_reply += token
+                # JSON-encode so \n characters inside tokens don't break SSE framing
+                yield f"data: {json.dumps(token)}\n\n"
+        except Exception as e:
+            print(f"Agent error: {e}")
+            yield f"data: {json.dumps('I am a bit busy right now — please try again in a few seconds!')}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+
+        reply = clean_output(full_reply)
+        db.add(Message(session_id=body.session_id, role="user", content=body.message))
+        db.add(Message(session_id=body.session_id, role="assistant", content=reply))
+
+        session = db.query(ChatSession).filter(ChatSession.id == body.session_id).first()
+        if session and session.title == "New Chat":
+            session.title = body.message[:40]
+        db.commit()
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
+    )
+
+# ── RAG-only chat route (SSE-style chunked output) ─────────
+@app.post("/chat/rag")
+def chat_rag_only(body: ChatBody, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    safe, reason = check_input(body.message)
+    if not safe:
+        def error_gen():
+            yield f"data: {reason}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(error_gen(), media_type="text/event-stream")
+
+    past = db.query(Message).filter(
+        Message.session_id == body.session_id
+    ).order_by(Message.timestamp).all()
+
+    history = [
+        HumanMessage(content=m.content) if m.role == "user"
+        else AIMessage(content=m.content)
+        for m in past
+    ]
+
+    def event_generator():
+        full_reply = ""
+        try:
+            for token in stream_rag_response(body.message, history):
+                full_reply += token
+                yield f"data: {json.dumps(token)}\n\n"
+        except Exception as e:
+            print(f"RAG error: {e}")
+            yield f"data: {json.dumps('I am a bit busy right now — please try again in a few seconds!')}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+
+        reply = clean_output(full_reply)
+        db.add(Message(session_id=body.session_id, role="user", content=body.message))
+        db.add(Message(session_id=body.session_id, role="assistant", content=f"[RAG] {reply}"))
+
+        session = db.query(ChatSession).filter(ChatSession.id == body.session_id).first()
+        if session and session.title == "New Chat":
+            session.title = f"[RAG] {body.message[:35]}"
+        db.commit()
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
+    )
